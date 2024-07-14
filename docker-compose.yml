@@ -1,0 +1,44 @@
+services:
+  backend:
+    image: giants/golang:dev
+    build:
+      dockerfile: build/go-dev.Dockerfile
+      context: .
+    container_name: backend
+    hostname: backend
+    volumes:
+      - ./:/backend/
+      - .cache/backend/go/pkg/:/go/pkg/
+      - .cache/.vscode-server/:/root/.vscode-server/
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/giants
+    depends_on:
+      - postgres
+      - init_postgres
+    stop_grace_period: 1s
+  
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    hostname: postgres
+    restart: always
+    volumes:
+      - ./database/:/database/
+      - .cache/postgres/data/:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: giants
+    stop_grace_period: 1s
+  
+  init_postgres:
+    image: postgres:latest
+    container_name: postgres-init
+    hostname: postgres-init
+    volumes:
+      - ./database/:/database/
+    depends_on:
+      - postgres
+    stop_grace_period: 1s
+    command: ["/bin/bash", "-c", "sleep 2 && psql postgres://postgres:postgres@postgres:5432/giants -f /database/schema.sql"]
+    
